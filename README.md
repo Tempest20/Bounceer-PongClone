@@ -1,2 +1,2 @@
-# Pong-Solar2D
-Pong Clone written in Lua for the Solar2D engine
+# Bounceer
+Pong clone written in Lua for the Solar2D engine
