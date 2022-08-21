@@ -1,12 +1,6 @@
 local composer = require( "composer" )
- 
 local scene = composer.newScene()
  
--- -----------------------------------------------------------------------------------
--- Code outside of the scene event functions below will only be executed ONCE unless
--- the scene is removed entirely (not recycled) via "composer.removeScene()"
--- -----------------------------------------------------------------------------------
-
 local bg
 local title
 local button
@@ -19,6 +13,7 @@ local function changeScenes()
     composer.gotoScene("pong", {effect = "slideUp", time = 1500})
 end
 
+
 -- create()
 function scene:create( event )
  
@@ -28,7 +23,7 @@ function scene:create( event )
     -- magic number hell
     bg = display.setDefault( "background" , {0, 0, 0});
 
-    title = display.newText( "Bounceer", w/2 + 20, display.contentCenterY - 30, "munro.ttf", 180 )
+    title = display.newText( "You Win!", w/2 + 20, display.contentCenterY - 30, "munro.ttf", 180 )
     sceneGroup:insert( title )
 
     button = display.newRect( display.contentCenterX, display.contentCenterY + 300, w/2 , 200 )

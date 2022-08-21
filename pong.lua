@@ -6,6 +6,7 @@ local scene = composer.newScene()
 -- init 
 local w = display.contentWidth
 local h = display.contentHeight
+local bg = display.setDefault( "background", 0, 0, 0 )
 
 local ballSpeed = 512
 local ballVelocity = {}
@@ -14,48 +15,69 @@ ballVelocity.y = 0
 
 local paddleSize = {}
 paddleSize.x = 25
-paddleSize.y = 400
+paddleSize.y = h/4
 
-local paddleSpeed = 5.0
-
-
--- set background and boundaries  --------------------------------------------------------------------
-local bg = display.setDefault( "background", 0, 0, 0 )
-local upperBound = display.newRect( w/2, 50, w, 5 )
+local paddleSpeed = 5.3
+local upperBound = display.newRect( w/2, (h-h)+1, w, 5 )
 local lowerBound = display.newRect( w/2 , h, w, 5 )
-upperBound:setFillColor( 0, 0, 0 )
-lowerBound:setFillColor( 0, 0, 0 )
-
-local playerScore = 0
-local playerScoreText = display.newText(tostring(playerScore), 200, 250, "munro.ttf", 120)
-local enemyScore = 0
-local enemyScoreText = display.newText(tostring(enemyScore), 900, 250, "munro.ttf", 120)
-
-
--- paddles n ball --------------------------------------------------------------------
+local playerScoreText 
+local enemyScoreText
 local playerPaddle = display.newRect( 30, h/2, paddleSize.x, paddleSize.y )
 local enemyPaddle = display.newRect( w - 30, h/2, paddleSize.x, paddleSize.y )
 local ball = display.newCircle( w/2, h/2, 25 )
+local playerScore = 0
+local enemyScore = 0
 
--- modules and physics --------------------------------------------------------------------
+
+
+
 local phys = require( "physics" )
 local math = require( "math" )
+
 physics.start()
 physics.setGravity(0, 0)
-
 physics.addBody( playerPaddle, "static" )
 physics.addBody( enemyPaddle, "static" )
 physics.addBody( upperBound, "static" )
 physics.addBody( lowerBound, "static" )
-physics.addBody( ball, "dynamic", {bounce = 0.8} );
+physics.addBody( ball, "dynamic", {bounce = 0.8} )
 
--- functions --------------------------------------------------------------------
+
+function scene:create( event )
+
+    local sceneGroup = self.view
+
+    upperBound:setFillColor( 0, 0, 0 )
+    lowerBound:setFillColor( 0, 0, 0 )
+
+    playerScore = 0
+    enemyScore = 0
+
+    playerScoreText = display.newText(tostring(playerScore), w/2 - w/4, h/6, "munro.ttf", 150)
+    enemyScoreText = display.newText(tostring(enemyScore), w/2 + w/4, h/6 , "munro.ttf", 150)
+
+    sceneGroup:insert(upperBound)
+    sceneGroup:insert(lowerBound)
+    sceneGroup:insert(playerScoreText)
+    sceneGroup:insert(enemyScoreText)
+    sceneGroup:insert(playerPaddle)
+    sceneGroup:insert(enemyPaddle)
+    sceneGroup:insert(ball)
+
+    
+
+end
+
+
+
+-- GAME FUNCTIONS --------------------------------------------------------------------
 local function setBall ( event )
     local phase = event.phase
     local dir = nil
+
     if (phase == "began") then
         if (event.other == upperBound) then
-             dir = 1 
+            dir = 1 
         elseif (event.other == lowerBound) then
             dir = -1 
         else    
@@ -65,14 +87,17 @@ local function setBall ( event )
     if (event.other == playerPaddle or event.other == enemyPaddle) then
         ballVelocity.x = -ballVelocity.x    
     end
+    
     ballVelocity.y = ballSpeed * dir
     ballSpeed = ballSpeed + 30
     end
 end
 
+
 local function moveBall()
     ball:setLinearVelocity( ballVelocity.x, ballVelocity.y )
 end
+
 
 local function movePlayer( event )
     local phase = event.phase 
@@ -80,6 +105,7 @@ local function movePlayer( event )
         playerPaddle.y = event.y
     end
 end
+
 
 local function moveEnemy()    
     local dist = ball.y - enemyPaddle.y
@@ -92,6 +118,7 @@ local function moveEnemy()
     enemyPaddle.y = enemyPaddle.y + move
 end
 
+
 local function resetBall()
     ballSpeed = 512
     ballVelocity.y = 0
@@ -99,10 +126,12 @@ local function resetBall()
     ball.y = h/2
 end
 
+
 local function drawScore()
     playerScoreText.text = tostring(playerScore)
     enemyScoreText.text = tostring(enemyScore)
 end
+
 
 local function ballCheck()
     if (ball.x < playerPaddle.x) then
@@ -116,11 +145,63 @@ local function ballCheck()
     end
 end
 
--- main loop I guess
+
+local function stopBall()
+    physics.removeBody(ball)
+    Runtime:removeEventListener("lateUpdate", moveBall)
+end
+
+
+local function startBall()
+    physics.addBody( ball, "dynamic", {bounce = 0.8} )
+    Runtime:addEventListener( "lateUpdate", moveBall )
+end
+
+
+local function gameCheck()
+    if (playerScore == 5) then
+        playerScore = 0
+        enemyScore = 0
+        composer.gotoScene("win", {effect = "fade", time = 500})
+        stopBall()
+
+    elseif (enemyScore == 5) then
+        playerScore = 0
+        enemyScore = 0
+        composer.gotoScene("lose", {effect = "fade", time = 500})
+        stopBall()
+    end
+end
+
+
+
+-- SCENE FUNCTIONS ------------------------------------------------------------------------------
+
+
+    
+function scene:show( event )
+ 
+    local sceneGroup = self.view
+    local phase = event.phase
+     
+    if ( phase == "will" ) then
+        playerScore = 0
+        enemyScore = 0
+        playerScoreText.text = tostring(playerScore)
+        enemyScoreText.text = tostring(enemyScore)
+
+    elseif ( phase == "did" ) then
+        startBall()
+    end
+end
+
+
+-- main loop event listeners 
 ball:addEventListener( "collision", setBall )
-Runtime:addEventListener( "lateUpdate", moveBall )
 Runtime:addEventListener( "touch", movePlayer )
 Runtime:addEventListener( "lateUpdate", moveEnemy )
 Runtime:addEventListener( "lateUpdate", ballCheck )
-
+Runtime:addEventListener( "lateUpdate", gameCheck)
+scene:addEventListener( "create", scene )
+scene:addEventListener( "show", scene )
 return scene
